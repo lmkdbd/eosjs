@@ -44,6 +44,28 @@
     debug "^3.1.0"
     lodash.once "^4.1.1"
 
+"@lmkdbd/ecurve@^1.0.5":
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/@lmkdbd/ecurve/-/ecurve-1.0.5.tgz#5c50a61ce7a8cf786bdb74bc7cca23fc885f675b"
+  integrity sha512-mQs7cGjEObjhB0go9ZRZl3Y3rShAskNIBUD8sxgHWkyFWYZAXZkU1beepNAwI6XDeEO3nfLCJ/wqCI9JMtz8ew==
+  dependencies:
+    bigi "^1.1.0"
+
+"@lmkdbd/eosjs-ecc@4.0.5":
+  version "4.0.5"
+  resolved "https://registry.yarnpkg.com/@lmkdbd/eosjs-ecc/-/eosjs-ecc-4.0.5.tgz#57d95296d6a37de1124e0a54cb1f465cca6026e7"
+  integrity sha512-AmTOGTaDDggcMPk5KLznlliug13/LqyNAZNmI2kt3Tr8Yvoa/rxs4AVydztwkk66o7yi9tkbuxfi5GW6m9Mf+Q==
+  dependencies:
+    "@lmkdbd/ecurve" "^1.0.5"
+    bigi "^1.4.2"
+    browserify-aes "^1.0.6"
+    bs58 "^4.0.1"
+    bytebuffer "^5.0.1"
+    create-hash "^1.1.3"
+    create-hmac "^1.1.6"
+    randombytes "^2.0.5"
+    sm3.js "^1.0.1"
+
 "@types/blob-util@1.3.3":
   version "1.3.3"
   resolved "https://registry.yarnpkg.com/@types/blob-util/-/blob-util-1.3.3.tgz#adba644ae34f88e1dd9a5864c66ad651caaf628a"
@@ -2227,14 +2249,6 @@ ecc-jsbn@~0.1.1:
     jsbn "~0.1.0"
     safer-buffer "^2.1.0"
 
-ecurve@^1.0.5:
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/ecurve/-/ecurve-1.0.6.tgz#dfdabbb7149f8d8b78816be5a7d5b83fcf6de797"
-  integrity sha512-/BzEjNfiSuB7jIWKcS/z8FK9jNjmEWvUV2YZ4RLSmcDtP7Lq0m6FvDuSnJpBlDpGRpfRQeTLGLBI8H+kEv0r+w==
-  dependencies:
-    bigi "^1.1.0"
-    safe-buffer "^5.0.1"
-
 electron-to-chromium@^1.3.47:
   version "1.3.122"
   resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.3.122.tgz#b32a0805f48557bd3c3b8104eadc7fa511b14a9a"
@@ -2278,20 +2292,6 @@ enhanced-resolve@^4.0.0, enhanced-resolve@^4.1.0:
     graceful-fs "^4.1.2"
     memory-fs "^0.4.0"
     tapable "^1.0.0"
-
-eosjs-ecc@4.0.4:
-  version "4.0.4"
-  resolved "https://registry.yarnpkg.com/eosjs-ecc/-/eosjs-ecc-4.0.4.tgz#431450f30a6f73088ff5d7ba1ebdfe967a5ca4ab"
-  integrity sha512-9wAYefts4TidHOu+eN9nAisZdWpUzlUimZrB63oP7+/s4xRNJEn2Vvep2ICRODpxpidbshM1L7WaSYW9oiV5gA==
-  dependencies:
-    bigi "^1.4.2"
-    browserify-aes "^1.0.6"
-    bs58 "^4.0.1"
-    bytebuffer "^5.0.1"
-    create-hash "^1.1.3"
-    create-hmac "^1.1.6"
-    ecurve "^1.0.5"
-    randombytes "^2.0.5"
 
 errno@^0.1.3, errno@~0.1.7:
   version "0.1.7"
@@ -5817,6 +5817,14 @@ slice-ansi@0.0.4:
   version "0.0.4"
   resolved "https://registry.yarnpkg.com/slice-ansi/-/slice-ansi-0.0.4.tgz#edbf8903f66f7ce2f8eafd6ceed65e264c831b35"
   integrity sha1-7b+JA/ZvfOL46v1s7tZeJkyDGzU=
+
+sm3.js@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/sm3.js/-/sm3.js-1.0.1.tgz#2b5dffe4729e5e309df4861a8338b0241939b324"
+  integrity sha512-YNyCjlLRL40UakzTm4fdobRJ8e59FfFhkLtzAHKWg7Rwq1HkbdAcP+r6CgLDxxEjTqUJPKlO6Xi8ROicwdq95w==
+  dependencies:
+    inherits "^2.0.3"
+    minimalistic-assert "^1.0.1"
 
 snapdragon-node@^2.0.1:
   version "2.1.1"

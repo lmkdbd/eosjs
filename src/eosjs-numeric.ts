@@ -214,10 +214,13 @@ export function base64ToBinary(s: string) {
 }
 
 /** Key types this library supports */
-export enum KeyType {
-    k1 = 0,
-    r1 = 1,
-}
+export const KeyType = new Map([[0,"K1"],[1,"R1"],[3,"SM2"]]);
+
+export const prefixMatchStr = /^(EOS|FO)/;
+// export enum KeyType {
+//     k1 = 0,
+//     r1 = 1,
+// }
 
 /** Public key data size, excluding type field */
 export const publicKeyDataSize = 33;
@@ -230,8 +233,16 @@ export const signatureDataSize = 65;
 
 /** Public key, private key, or signature in binary form */
 export interface Key {
-    type: KeyType;
+    type: number;
     data: Uint8Array;
+}
+
+function getKeyTypeFromString(type: string) {
+    for (let [key, value] of KeyType) {
+        if (value === type)
+            return key;
+    }
+    return undefined;
 }
 
 function digestSuffixRipemd160(data: Uint8Array, suffix: string) {
@@ -245,7 +256,7 @@ function digestSuffixRipemd160(data: Uint8Array, suffix: string) {
     return ripemd160(d);
 }
 
-function stringToKey(s: string, type: KeyType, size: number, suffix: string): Key {
+function stringToKey(s: string, type: number, size: number, suffix: string): Key {
     const whole = base58ToBinary(size + 4, s);
     const result = { type, data: new Uint8Array(whole.buffer, 0, size) };
     const digest = new Uint8Array(digestSuffixRipemd160(result.data, suffix));
@@ -273,9 +284,12 @@ export function stringToPublicKey(s: string): Key {
     if (typeof s !== 'string') {
         throw new Error('expected string containing public key');
     }
-    if (s.substr(0, 3) === 'EOS') {
-        const whole = base58ToBinary(publicKeyDataSize + 4, s.substr(3));
-        const key = { type: KeyType.k1, data: new Uint8Array(publicKeyDataSize) };
+   
+    const prefix_match = s.match(prefixMatchStr)
+    if(prefix_match) {
+        const prefix = prefix_match[0];
+        const whole = base58ToBinary(publicKeyDataSize + 4, s.substr(prefix.length));
+        const key = { type: getKeyTypeFromString("K1"), data: new Uint8Array(publicKeyDataSize) };
         for (let i = 0; i < publicKeyDataSize; ++i) {
             key.data[i] = whole[i];
         }
@@ -285,21 +299,23 @@ export function stringToPublicKey(s: string): Key {
             throw new Error('checksum doesn\'t match');
         }
         return key;
-    } else if (s.substr(0, 7) === 'PUB_K1_') {
-        return stringToKey(s.substr(7), KeyType.k1, publicKeyDataSize, 'K1');
-    } else if (s.substr(0, 7) === 'PUB_R1_') {
-        return stringToKey(s.substr(7), KeyType.r1, publicKeyDataSize, 'R1');
     } else {
-        throw new Error('unrecognized public key format');
+        const match = s.match(/^PUB_([A-Za-z0-9]+)_([A-Za-z0-9]+)$/)
+        if (match === null || match.length != 3)
+            throw new Error('unrecognized public key format');
+        const [, keyType, keyString] = match
+        var typeNumber = getKeyTypeFromString(keyType);
+        if (!typeNumber)
+            throw new Error('unrecognized public key type');
+        return stringToKey(keyString, typeNumber, publicKeyDataSize, keyType);
     }
 }
 
 /** Convert `key` to string (base-58) form */
 export function publicKeyToString(key: Key) {
-    if (key.type === KeyType.k1 && key.data.length === publicKeyDataSize) {
-        return keyToString(key, 'K1', 'PUB_K1_');
-    } else if (key.type === KeyType.r1 && key.data.length === publicKeyDataSize) {
-        return keyToString(key, 'R1', 'PUB_R1_');
+    var typeString = KeyType.get(key.type);
+    if (!typeString) {
+        return keyToString(key, typeString, 'PUB_'+ typeString +'_');
     } else {
         throw new Error('unrecognized public key format');
     }
@@ -309,7 +325,8 @@ export function publicKeyToString(key: Key) {
  * Leaves other formats untouched
  */
 export function convertLegacyPublicKey(s: string) {
-    if (s.substr(0, 3) === 'EOS') {
+    const prefix_match = s.match(prefixMatchStr)
+    if (prefix_match) {
         return publicKeyToString(stringToPublicKey(s));
     }
     return s;
@@ -327,17 +344,21 @@ export function stringToPrivateKey(s: string): Key {
     if (typeof s !== 'string') {
         throw new Error('expected string containing private key');
     }
-    if (s.substr(0, 7) === 'PVT_R1_') {
-        return stringToKey(s.substr(7), KeyType.r1, privateKeyDataSize, 'R1');
-    } else {
+    const match = s.match(/^PVT_([A-Za-z0-9]+)_([A-Za-z0-9]+)$/)
+    if (match === null || match.length != 3)
         throw new Error('unrecognized private key format');
-    }
+    const [, keyType, keyString] = match
+    var typeNumber = getKeyTypeFromString(keyType);
+    if (!typeNumber)
+        throw new Error('unrecognized private key type');
+    return stringToKey(keyString, typeNumber, publicKeyDataSize, keyType);
 }
 
 /** Convert `key` to string (base-58) form */
 export function privateKeyToString(key: Key) {
-    if (key.type === KeyType.r1) {
-        return keyToString(key, 'R1', 'PVT_R1_');
+    var typeString = KeyType.get(key.type);
+    if (typeString) {
+        return keyToString(key, typeString, 'PVT_' + typeString + '_');
     } else {
         throw new Error('unrecognized private key format');
     }
@@ -348,21 +369,21 @@ export function stringToSignature(s: string): Key {
     if (typeof s !== 'string') {
         throw new Error('expected string containing signature');
     }
-    if (s.substr(0, 7) === 'SIG_K1_') {
-        return stringToKey(s.substr(7), KeyType.k1, signatureDataSize, 'K1');
-    } else if (s.substr(0, 7) === 'SIG_R1_') {
-        return stringToKey(s.substr(7), KeyType.r1, signatureDataSize, 'R1');
-    } else {
+    const match = s.match(/^SIG_([A-Za-z0-9]+)_([A-Za-z0-9]+)$/)
+    if (match === null || match.length != 3)
         throw new Error('unrecognized signature format');
-    }
+    const [, keyType, keyString] = match
+    var typeNumber = getKeyTypeFromString(keyType);
+    if (!typeNumber)
+        throw new Error('unrecognized signature key type');
+    return stringToKey(keyString, typeNumber, publicKeyDataSize, keyType);
 }
 
 /** Convert `signature` to string (base-58) form */
 export function signatureToString(signature: Key) {
-    if (signature.type === KeyType.k1) {
-        return keyToString(signature, 'K1', 'SIG_K1_');
-    } else if (signature.type === KeyType.r1) {
-        return keyToString(signature, 'R1', 'SIG_R1_');
+    var typeString = KeyType.get(signature.type);
+    if (typeString) {
+        return keyToString(signature,typeString, 'SIG_' + typeString + '_');
     } else {
         throw new Error('unrecognized signature format');
     }

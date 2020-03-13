@@ -3,7 +3,7 @@
  */
 // copyright defined in eosjs/LICENSE.txt
 
-import * as ecc from 'eosjs-ecc';
+import * as ecc from '@lmkdbd/eosjs-ecc';
 import { SignatureProvider, SignatureProviderArgs } from './eosjs-api-interfaces';
 import { convertLegacyPublicKey } from './eosjs-numeric';
 
@@ -18,7 +18,7 @@ export class JsSignatureProvider implements SignatureProvider {
     /** @param privateKeys private keys to sign with */
     constructor(privateKeys: string[]) {
         for (const k of privateKeys) {
-            const pub = convertLegacyPublicKey(ecc.PrivateKey.fromString(k).toPublic().toString());
+            const pub = convertLegacyPublicKey(ecc.PrivateKey.fromString(k).toPublic().toString("KTP"));
             this.keys.set(pub, k);
             this.availableKeys.push(pub);
         }
@@ -35,7 +35,11 @@ export class JsSignatureProvider implements SignatureProvider {
             new Buffer(chainId, 'hex'), new Buffer(serializedTransaction), new Buffer(new Uint8Array(32)),
         ]);
         const signatures = requiredKeys.map(
-            (pub) => ecc.Signature.sign(signBuf, this.keys.get(convertLegacyPublicKey(pub))).toString(),
+            (pub) => {
+                var legacy_pk = convertLegacyPublicKey(pub);
+                var ecc_pk = ecc.PublicKey.fromString(legacy_pk);
+                return ecc.Signature.sign(signBuf, this.keys.get(convertLegacyPublicKey(pub)), ecc_pk.curve_name).toString()
+            },
         );
         return { signatures, serializedTransaction };
     }
