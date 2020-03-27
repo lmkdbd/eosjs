@@ -1,8 +1,8 @@
 {
-  "name": "@lmkdbd/eosjs",
+  "name": "@lmkdbd/fibos.js",
   "version": "20.0.0",
   "description": "Talk to eos API",
-  "main": "dist/index.js",
+  "main": "dist/fibos.js",
   "scripts": {
     "cypress": "./scripts/run-cypress.sh",
     "cypress-ui": "./scripts/run-cypress.sh ui",

@@ -1,114 +1,160 @@
-# eosjs ![npm](https://img.shields.io/npm/dw/eosjs.svg)
+# fibos.js
 
-Javascript API for integration with EOSIO-based blockchains using [EOSIO RPC API](https://developers.eos.io/eosio-nodeos/reference).
+`fibos.js` 是基于 [eosjs](https://www.npmjs.com/package/eosjs) v20.0.0 开发的，与 `fibos` 链交互的 `npm` 包。 相较于 `eosjs`, `fibos.js` 增加了如下特性：
+1. 对国密算法的支持
+2. 对 `js` 合约的处理
+3. `api` 和 `rpc` 的同步方法
 
-Documentation can be found [here](https://eosio.github.io/eosjs)
-
-## Installation
+## 安装
 
 ### NPM
 
-The official distribution package can be found at [npm](https://www.npmjs.com/package/eosjs).
+项目地址为: `https://www.npmjs.com/package/@lmkdbd/fibos.js`
 
-### NodeJS Dependency
+安装方式: `npm i @lmkdbd/fibos.js`
 
-`yarn add eosjs`
+## 使用方式
 
-### Browser Distribution
-
-Clone this repository locally then run `yarn build-web`.  The browser distribution will be located in `dist-web` and can be directly copied into your project repository. The `dist-web` folder contains minified bundles ready for production, along with source mapped versions of the library for debugging.  For full browser usage examples, [see the documentation](https://eosio.github.io/eosjs/guides/1.-Browsers.html).
-
-## Import
-
-### ES Modules
-
-Importing using ES6 module syntax in the browser is supported if you have a transpiler, such as Babel.
+### 导入模块
 ```js
-import { Api, JsonRpc, RpcError } from 'eosjs';
-import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';           // development only
+var FIBOS = require('@lmkdbd/fibos.js')
 ```
 
-### CommonJS
-
-Importing using commonJS syntax is supported by NodeJS out of the box.
+### 初始化 fibos
 ```js
-const { Api, JsonRpc, RpcError } = require('eosjs');
-const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');      // development only
-const fetch = require('node-fetch');                                    // node only; not needed in browsers
-const { TextEncoder, TextDecoder } = require('util');                   // node only; native TextEncoder/Decoder
-const { TextEncoder, TextDecoder } = require('text-encoding');          // React Native, IE11, and Edge Browsers only
+var fibos = FIBOS.Fibos( {
+    httpEndpoint: "http://localhost:8801",
+    keyProvider: ["5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"]
+});
 ```
 
-## Basic Usage
-
-### Signature Provider
-
-The Signature Provider holds private keys and is responsible for signing transactions.
-
-***Using the JsSignatureProvider in the browser is not secure and should only be used for development purposes. Use a secure vault outside of the context of the webpage to ensure security when signing transactions in production***
-
+### 创建账号
 ```js
-const defaultPrivateKey = "5JtUScZK2XEp3g9gh7F8bwtPTRAkASmNrrftmx4AxDKD5K4zDnr"; // bob
-const signatureProvider = new JsSignatureProvider([defaultPrivateKey]);
-```
-
-### JSON-RPC
-
-Open a connection to JSON-RPC, include `fetch` when on NodeJS.
-```js
-const rpc = new JsonRpc('http://127.0.0.1:8888', { fetch });
-```
-
-### API
-
-Include textDecoder and textEncoder when using in Node, React Native, IE11 or Edge Browsers.
-```js
-const api = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
-```
-
-### Sending a transaction
-
-`transact()` is used to sign and push transactions onto the blockchain with an optional configuration object parameter.  This parameter can override the default value of `broadcast: true`, and can be used to fill TAPOS fields given `blocksBehind` and `expireSeconds`.  Given no configuration options, transactions are expected to be unpacked with TAPOS fields (`expiration`, `ref_block_num`, `ref_block_prefix`) and will automatically be broadcast onto the chain.
-
-```js
-(async () => {
-  const result = await api.transact({
+var name = "user";
+fibos.api.transactSync({
     actions: [{
-      account: 'eosio.token',
-      name: 'transfer',
-      authorization: [{
-        actor: 'useraaaaaaaa',
-        permission: 'active',
-      }],
-      data: {
-        from: 'useraaaaaaaa',
-        to: 'useraaaaaaab',
-        quantity: '0.0001 SYS',
-        memo: '',
-      },
-    }]
-  }, {
+        account: 'eosio',
+        name: 'newaccount',
+        authorization: [{
+            actor: 'eosio',
+            permission: 'active',
+        }],
+        data: {
+            creator: 'eosio',
+            name: name,
+            owner: {
+                threshold: "1",
+                keys: [{
+                    key: "FO6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV",
+                    weight: "1"
+                }],
+                accounts: [],
+                waits: []
+            },
+            active: {
+                threshold: "1",
+                keys: [{
+                    key: "FO6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV",
+                    weight: "1"
+                }],
+                accounts: [],
+                waits: []
+            }
+         },
+    }],
+},
+{
     blocksBehind: 3,
     expireSeconds: 30,
-  });
-  console.dir(result);
-})();
+})
 ```
 
-### Error handling
-
-use `RpcError` for handling RPC Errors
+### 部署合约
 ```js
-...
-try {
-  const result = await api.transact({
-  ...
-} catch (e) {
-  console.log('\nCaught exception: ' + e);
-  if (e instanceof RpcError)
-    console.log(JSON.stringify(e.json, null, 2));
-}
-...
+var js_code = `exports.hi = v => console.error(action.name);`;
+fibos.api.transactSync({
+    actions: [{
+        account: "eosio",
+        name: 'setcode',
+        authorization: [{
+            actor: "user",
+            permission: 'active',
+        }],
+        data: {
+            account: "user",
+            vmtype: 0,
+            vmversion: 0,
+            code: fibos.api.compileCode(js_code).toString(`hex`),
+        }
+    }],
+},
+{
+    blocksBehind: 3,
+    expireSeconds: 30,
+})
+```
+
+### 部署 ABI 
+```js
+var abi = {
+    "version": "eosio::abi/1.0",
+    "structs": [{
+        "name": "hi",
+        "base": "",
+        "fields": [{
+            "name": "user",
+            "type": "name"
+        }]
+    }],
+    "actions": [{
+        "name": "hi",
+        "type": "hi",
+        "ricardian_contract": ""
+    }]
+};
+fibos.api.transactSync({
+    actions: [{
+        account: 'eosio',
+        name: 'setabi',
+        authorization: [{
+            actor: "user",
+            permission: 'active',
+        }],
+        data: {
+            account: "user",
+            abi: fibos.api.serializaAbi(abi),
+        }
+    }],
+},{
+    blocksBehind: 3,
+    expireSeconds: 30,
+})
+```
+
+### 调用方法
+```js
+var r = fibos.api.transactSync({
+    actions: [{
+        account: "user",
+        name: 'hi',
+        authorization: [{
+            actor: "user",
+            permission: 'active',
+        }],
+        data: {
+            user: 'testuser'
+        }
+    }],
+},
+{
+    blocksBehind: 3,
+    expireSeconds: 30,
+})
+```
+### 查询 ABI
+```js
+var res = fibos.rpc.getAbiSync(`user`)
+console.warn('---- res ----',res);
 ```
 
 ## Contributing
