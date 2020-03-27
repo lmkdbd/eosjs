@@ -7,6 +7,12 @@ import { AbiProvider, AuthorityProvider, BinaryAbi, CachedAbi, SignatureProvider
 import { JsonRpc } from './eosjs-jsonrpc';
 import { Abi, GetInfoResult, PushTransactionArgs } from './eosjs-rpc-interfaces';
 import * as ser from './eosjs-serialize';
+import * as util from 'util';
+import * as fs from 'fs';
+import * as io from 'io';
+import * as path from 'path';
+import * as zip from 'zip';
+import { CLIENT_RENEG_WINDOW } from 'tls';
 
 const abiAbi = require('../src/abi.abi.json');
 const transactionAbi = require('../src/transaction.abi.json');
@@ -38,6 +44,8 @@ export class Api {
 
     /** Holds information needed to serialize contract actions */
     public contracts = new Map<string, ser.Contract>();
+
+    public contractFunctions = new Map<string, Object>();
 
     /** Fetched abis */
     public cachedAbis = new Map<string, CachedAbi>();
@@ -108,9 +116,17 @@ export class Api {
         return cachedAbi;
     }
 
+    public getCachedAbiSync(accountName: string, reload = false): CachedAbi {
+        return util.sync(()=>this.getCachedAbi(accountName, reload), true)();
+    }
+
     /** Get abi in structured form. Fetch when needed. */
     public async getAbi(accountName: string, reload = false): Promise<Abi> {
         return (await this.getCachedAbi(accountName, reload)).abi;
+    }
+
+    public getAbiSync(accountName: string, reload = false): Abi {
+        return util.sync(()=>this.getAbi(accountName, reload), true)();
     }
 
     /** Get abis needed by a transaction */
@@ -122,6 +138,10 @@ export class Api {
                 accountName: account, abi: (await this.getCachedAbi(account, reload)).rawAbi,
             }));
         return Promise.all(actionPromises);
+    }
+
+    public getTransactionAbisSync(accountName: string, reload = false): Abi {
+        return util.sync(()=>this.getTransactionAbis(accountName, reload), true)();
     }
 
     /** Get data needed to serialize actions in a contract */
@@ -138,6 +158,10 @@ export class Api {
         const result = { types, actions };
         this.contracts.set(accountName, result);
         return result;
+    }
+
+    public getContractSync(accountName: string, reload = false): ser.Contract {
+        return util.sync(()=>this.getContract(accountName, reload), true)();
     }
 
     /** Convert `value` to binary form. `type` must be a built-in abi type or in `transaction.abi.json`. */
@@ -181,6 +205,11 @@ export class Api {
         }));
     }
 
+    public serializeActionsSync(actions: ser.Action[]): ser.SerializedAction[] {
+        return util.sync(()=>this.serializeActions(actions), true)();
+    }
+
+
     /** Convert actions from hex */
     public async deserializeActions(actions: ser.Action[]): Promise<ser.Action[]> {
         return await Promise.all(actions.map(async ({ account, name, authorization, data }) => {
@@ -188,6 +217,10 @@ export class Api {
             return ser.deserializeAction(
                 contract, account, name, authorization, data, this.textEncoder, this.textDecoder);
         }));
+    }
+
+    public deserializeActionsSync(actions: ser.Action[]): ser.Action[] {
+        return util.sync(()=>this.deserializeActions(actions), true)();
     }
 
     /** Convert a transaction from binary. Also deserializes actions. */
@@ -198,6 +231,10 @@ export class Api {
         const deserializedTransaction = this.deserializeTransaction(transaction);
         const deserializedActions = await this.deserializeActions(deserializedTransaction.actions);
         return { ...deserializedTransaction, actions: deserializedActions };
+    }
+
+    public deserializeTransactionWithActionsSync(transaction: Uint8Array | string): any {
+        return util.sync(()=>this.deserializeTransactionWithActions(transaction), true)();
     }
 
     /**
@@ -253,6 +290,11 @@ export class Api {
         return pushTransactionArgs;
     }
 
+    public transactSync(transaction: any, { broadcast = true, sign = true, blocksBehind, expireSeconds }:
+        { broadcast?: boolean; sign?: boolean; blocksBehind?: number; expireSeconds?: number; } = {}): any {
+        return util.sync(()=>this.transact(transaction,{broadcast,sign,blocksBehind,expireSeconds}), true)();
+    }
+
     /** Broadcast a signed transaction */
     public async pushSignedTransaction({ signatures, serializedTransaction }: PushTransactionArgs): Promise<any> {
         return this.rpc.push_transaction({
@@ -260,6 +302,61 @@ export class Api {
             serializedTransaction,
         });
     }
+
+    public  pushSignedTransactionSync({ signatures, serializedTransaction }: PushTransactionArgs): any {
+        return util.sync(()=>this.pushSignedTransaction({signatures, serializedTransaction}), true)();
+    }
+
+    public serializaAbi(abi : any): string {
+        const buffer = new ser.SerialBuffer({
+            textEncoder: this.textEncoder,
+            textDecoder: this.textDecoder,
+          })
+        
+          const abiDefinition = this.abiTypes.get(`abi_def`)
+          // need to make sure abi has every field in abiDefinition.fields
+          // otherwise serialize throws
+          abi = abiDefinition.fields.reduce(
+            (acc, { name: fieldName }) =>
+              Object.assign(acc, { [fieldName]: acc[fieldName] || [] }),
+            abi
+          )
+          abiDefinition.serialize(buffer, abi)
+          return Buffer.from(buffer.asUint8Array()).toString(`hex`);
+    }
+
+    public compileModule (fname: string){
+        var stm = new io.MemoryStream();
+        var zf = zip.open(stm, "w");
+    
+        function append(fname: string, base:string) {
+            var files = fs.readdir(fname);
+    
+            files.forEach((file:string) => {
+                var fpath = path.join(fname, file);
+                if (fs.stat(fpath).isDirectory())
+                    append(fpath, path.join(base, file));
+                else
+                    zf.write(fs.readFile(fpath), path.join(base, file));
+            });
+        }
+    
+        append(fname, "");
+    
+        zf.close();
+        stm.rewind();
+    
+        return stm.readAll();
+    };
+    
+    public compileCode(code: string) {
+        var stm = new io.MemoryStream();
+        var zf = zip.open(stm, "w");
+        zf.write(new Buffer(code), 'index.js');
+        zf.close();
+        stm.rewind();
+        return stm.readAll();
+    };
 
     // eventually break out into TransactionValidator class
     private hasRequiredTaposFields({ expiration, ref_block_num, ref_block_prefix, ...transaction }: any): boolean {

@@ -1,3 +1,5 @@
+import { CLIENT_RENEG_WINDOW } from "tls";
+
 /**
  * @module Numeric
  */
@@ -216,7 +218,11 @@ export function base64ToBinary(s: string) {
 /** Key types this library supports */
 export const KeyType = new Map([[0,"K1"],[1,"R1"],[3,"SM2"]]);
 
-export const prefixMatchStr = /^(EOS|FO)/;
+var prefixMatchStr = /^(EOS|FO)/;
+
+export function changePrefix(prefixs:Array<string>) {
+    prefixMatchStr = new RegExp("^(" +prefixs.join("|")+")")
+}
 // export enum KeyType {
 //     k1 = 0,
 //     r1 = 1,
@@ -314,7 +320,7 @@ export function stringToPublicKey(s: string): Key {
 /** Convert `key` to string (base-58) form */
 export function publicKeyToString(key: Key) {
     var typeString = KeyType.get(key.type);
-    if (!typeString) {
+    if (typeString) {
         return keyToString(key, typeString, 'PUB_'+ typeString +'_');
     } else {
         throw new Error('unrecognized public key format');

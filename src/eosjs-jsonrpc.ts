@@ -7,6 +7,8 @@ import { AbiProvider, AuthorityProvider, AuthorityProviderArgs, BinaryAbi } from
 import { base64ToBinary, convertLegacyPublicKeys } from './eosjs-numeric';
 import { GetAbiResult, GetBlockResult, GetCodeResult, GetInfoResult, GetRawCodeAndAbiResult, PushTransactionArgs } from "./eosjs-rpc-interfaces" // tslint:disable-line
 import { RpcError } from './eosjs-rpcerror';
+import { CLIENT_RENEG_WINDOW } from 'tls';
+import * as util from 'util';
 
 function arrayToHex(data: Uint8Array) {
     let result = '';
@@ -61,10 +63,14 @@ export class JsonRpc implements AuthorityProvider, AbiProvider {
         }
         return json;
     }
-
+   
     /** Raw call to `/v1/chain/get_abi` */
     public async get_abi(accountName: string): Promise<GetAbiResult> {
         return await this.fetch('/v1/chain/get_abi', { account_name: accountName });
+    }
+
+    public getAbiSync(accountName: string): GetAbiResult {
+        return util.sync(()=>this.get_abi(accountName), true)();
     }
 
     /** Raw call to `/v1/chain/get_account` */
@@ -72,9 +78,17 @@ export class JsonRpc implements AuthorityProvider, AbiProvider {
         return await this.fetch('/v1/chain/get_account', { account_name: accountName });
     }
 
+    public getAccountSync(accountName: string): any {
+        return util.sync(()=>this.get_account(accountName), true)();
+    }
+
     /** Raw call to `/v1/chain/get_block_header_state` */
     public async get_block_header_state(blockNumOrId: number | string): Promise<any> {
         return await this.fetch('/v1/chain/get_block_header_state', { block_num_or_id: blockNumOrId });
+    }
+
+    public getBlockHeaderStateSync(blockNumOrId: number | string): any {
+        return util.sync(()=>this.get_block_header_state(blockNumOrId), true)();
     }
 
     /** Raw call to `/v1/chain/get_block` */
@@ -82,9 +96,17 @@ export class JsonRpc implements AuthorityProvider, AbiProvider {
         return await this.fetch('/v1/chain/get_block', { block_num_or_id: blockNumOrId });
     }
 
+    public getBlockSync(blockNumOrId: number | string): GetBlockResult {
+        return util.sync(()=>this.get_block(blockNumOrId), true)();
+    }
+
     /** Raw call to `/v1/chain/get_code` */
     public async get_code(accountName: string): Promise<GetCodeResult> {
         return await this.fetch('/v1/chain/get_code', { account_name: accountName });
+    }
+
+    public getCodeSync(accountName: string): GetCodeResult {
+        return util.sync(()=>this.get_code(accountName), true)();
     }
 
     /** Raw call to `/v1/chain/get_currency_balance` */
@@ -92,9 +114,17 @@ export class JsonRpc implements AuthorityProvider, AbiProvider {
         return await this.fetch('/v1/chain/get_currency_balance', { code, account, symbol });
     }
 
+    public getCurrencyBalanceSync(code: string, account: string, symbol: string = null): any {
+        return util.sync(()=>this.get_currency_balance(code, account, symbol), true)();
+    }
+
     /** Raw call to `/v1/chain/get_currency_stats` */
     public async get_currency_stats(code: string, symbol: string): Promise<any> {
         return await this.fetch('/v1/chain/get_currency_stats', { code, symbol });
+    }
+
+    public getCurrencyStatsSync(code: string, symbol: string): any {
+        return util.sync(()=>this.get_currency_stats(code, symbol), true)();
     }
 
     /** Raw call to `/v1/chain/get_info` */
@@ -102,9 +132,17 @@ export class JsonRpc implements AuthorityProvider, AbiProvider {
         return await this.fetch('/v1/chain/get_info', {});
     }
 
+    public getInfoSync(): GetInfoResult{
+        return util.sync(()=>this.get_info(),true)();
+    }
+
     /** Raw call to `/v1/chain/get_producer_schedule` */
     public async get_producer_schedule(): Promise<any> {
         return await this.fetch('/v1/chain/get_producer_schedule', {});
+    }
+
+    public getProducerScheduleSync(): any {
+        return util.sync(()=>this.get_producer_schedule(), true)();
     }
 
     /** Raw call to `/v1/chain/get_producers` */
@@ -112,9 +150,17 @@ export class JsonRpc implements AuthorityProvider, AbiProvider {
         return await this.fetch('/v1/chain/get_producers', { json, lower_bound: lowerBound, limit });
     }
 
+    public getProducersSync(json = true, lowerBound = '', limit = 50): any {
+        return util.sync(()=>this.get_producers(json, lowerBound, limit), true)();
+    }
+
     /** Raw call to `/v1/chain/get_raw_code_and_abi` */
     public async get_raw_code_and_abi(accountName: string): Promise<GetRawCodeAndAbiResult> {
         return await this.fetch('/v1/chain/get_raw_code_and_abi', { account_name: accountName });
+    }
+
+    public getRawCodeAndAbiSync(accountName: string): GetRawCodeAndAbiResult {
+        return util.sync(()=>this.get_raw_code_and_abi(accountName), true)();
     }
 
     /** calls `/v1/chain/get_raw_code_and_abi` and pulls out unneeded raw wasm code */
@@ -123,6 +169,10 @@ export class JsonRpc implements AuthorityProvider, AbiProvider {
         const rawCodeAndAbi = await this.get_raw_code_and_abi(accountName);
         const abi = base64ToBinary(rawCodeAndAbi.abi);
         return { accountName: rawCodeAndAbi.account_name, abi };
+    }
+
+    public getRawAbiSync(accountName: string): BinaryAbi {
+        return util.sync(()=>this.getRawAbi(accountName), true)();
     }
 
     /** Raw call to `/v1/chain/get_table_rows` */
@@ -157,6 +207,36 @@ export class JsonRpc implements AuthorityProvider, AbiProvider {
             });
     }
 
+    public getTableRowsSync({
+        json = true,
+        code,
+        scope,
+        table,
+        table_key = '',
+        lower_bound = '',
+        upper_bound = '',
+        index_position = 1,
+        key_type = '',
+        limit = 10,
+        reverse = false,
+        show_payer = false,
+     }: any): any {
+        return util.sync(()=>this.get_table_rows({
+            json,
+            code,
+            scope,
+            table,
+            table_key,
+            lower_bound,
+            upper_bound,
+            index_position,
+            key_type,
+            limit,
+            reverse,
+            show_payer,
+         }), true)();
+    }
+
     /** Raw call to `/v1/chain/get_table_by_scope` */
     public async get_table_by_scope({
         code,
@@ -175,12 +255,32 @@ export class JsonRpc implements AuthorityProvider, AbiProvider {
             });
     }
 
+    public getTableByScopeSync({
+        code,
+        table,
+        lower_bound = '',
+        upper_bound = '',
+        limit = 10,
+    }: any): any {
+        return util.sync(()=>this.get_table_by_scope({
+            code,
+            table,
+            lower_bound,
+            upper_bound,
+            limit,
+        }), true)();
+    }
+
     /** Get subset of `availableKeys` needed to meet authorities in `transaction`. Implements `AuthorityProvider` */
     public async getRequiredKeys(args: AuthorityProviderArgs): Promise<string[]> {
         return convertLegacyPublicKeys((await this.fetch('/v1/chain/get_required_keys', {
             transaction: args.transaction,
             available_keys: args.availableKeys,
         })).required_keys);
+    }
+
+    public getRequiredKeysSync(args: AuthorityProviderArgs): string[] {
+        return util.sync(()=>this.getRequiredKeys(args), true)();
     }
 
     /** Push a serialized transaction */
@@ -191,6 +291,13 @@ export class JsonRpc implements AuthorityProvider, AbiProvider {
             packed_context_free_data: '',
             packed_trx: arrayToHex(serializedTransaction),
         });
+    }
+
+    public pushTransactionSync({ signatures, serializedTransaction }: PushTransactionArgs): any {
+        return util.sync(()=>this.push_transaction({
+            signatures,
+            serializedTransaction,
+        }), true)();
     }
 
     /** Raw call to `/v1/db_size/get` */
@@ -215,4 +322,5 @@ export class JsonRpc implements AuthorityProvider, AbiProvider {
     public async history_get_controlled_accounts(controllingAccount: string) {
         return await this.fetch('/v1/history/get_controlled_accounts', { controlling_account: controllingAccount });
     }
+
 } // JsonRpc
