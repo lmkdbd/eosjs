@@ -216,7 +216,7 @@ export function base64ToBinary(s: string) {
 }
 
 /** Key types this library supports */
-export const KeyType = new Map([[0,"K1"],[1,"R1"],[3,"SM2"]]);
+export const KeyType = new Map([[0,"K1"],[1,"R1"],[2,"SM2"]]);
 
 var prefixMatchStr = /^(EOS|FO)/;
 

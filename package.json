@@ -1,6 +1,6 @@
 {
   "name": "@lmkdbd/fibos.js",
-  "version": "20.0.0",
+  "version": "20.0.2",
   "description": "Talk to eos API",
   "main": "dist/fibos.js",
   "scripts": {
@@ -28,7 +28,7 @@
     "url": "https://github.com/lmkdbd/eosjs"
   },
   "dependencies": {
-    "@lmkdbd/eosjs-ecc": "4.0.5",
+    "@lmkdbd/eosjs-ecc": "4.0.6",
     "babel-runtime": "6.26.0",
     "text-encoding": "0.7.0"
   },
