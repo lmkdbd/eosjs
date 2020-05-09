@@ -311,7 +311,7 @@ export function stringToPublicKey(s: string): Key {
             throw new Error('unrecognized public key format');
         const [, keyType, keyString] = match
         var typeNumber = getKeyTypeFromString(keyType);
-        if (!typeNumber)
+        if (typeNumber == undefined)
             throw new Error('unrecognized public key type');
         return stringToKey(keyString, typeNumber, publicKeyDataSize, keyType);
     }
@@ -355,7 +355,7 @@ export function stringToPrivateKey(s: string): Key {
         throw new Error('unrecognized private key format');
     const [, keyType, keyString] = match
     var typeNumber = getKeyTypeFromString(keyType);
-    if (!typeNumber)
+    if (typeNumber == undefined)
         throw new Error('unrecognized private key type');
     return stringToKey(keyString, typeNumber, publicKeyDataSize, keyType);
 }
@@ -380,7 +380,7 @@ export function stringToSignature(s: string): Key {
         throw new Error('unrecognized signature format');
     const [, keyType, keyString] = match
     var typeNumber = getKeyTypeFromString(keyType);
-    if (!typeNumber)
+    if (typeNumber == undefined)
         throw new Error('unrecognized signature key type');
     return stringToKey(keyString, typeNumber, publicKeyDataSize, keyType);
 }
